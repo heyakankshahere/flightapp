@@ -17,19 +17,28 @@ export default function Home() {
         setLoading(true);
         setError("");
         setHasSearched(true);
+
         try {
-            // Use the internal API route
-            const response = await axios.get(`/api/flight`, {
-                params: { flight_iata: query },
+            const response = await axios.get("/api/flight", {
+                params: { flight: query },
             });
 
-            if (response.data.data && response.data.data.length > 0) {
-                setFlights(response.data.data);
-            } else {
+            if (response.data?.error) {
                 setFlights([]);
-                setError("No flights found for this number.");
+                setError(response.data.error);
+                return;
             }
+
+            if (!response.data?.data || response.data.data.length === 0) {
+                setFlights([]);
+                setError("No flight data found for this flight number.");
+                return;
+            }
+
+            setFlights(response.data.data);
+            setError("");
         } catch (err) {
+            setFlights([]);
             setError("Failed to fetch flight data. Please try again.");
         } finally {
             setLoading(false);
@@ -37,7 +46,11 @@ export default function Home() {
     };
 
     return (
-        <main className="min-h-screen flex flex-col items-center justify-start pt-24 px-4 bg-[url('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=2074&auto=format&fit=crop')] bg-cover bg-center bg-no-repeat relative">
+        <main
+            className="min-h-screen flex flex-col items-center justify-start pt-24 px-4
+                       bg-[url('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=2074&auto=format&fit=crop')]
+                       bg-cover bg-center bg-no-repeat relative"
+        >
             <div className="absolute inset-0 bg-black/60 z-0"></div>
 
             <div className="z-10 w-full max-w-4xl flex flex-col items-center">
@@ -49,7 +62,9 @@ export default function Home() {
                     <h1 className="text-5xl md:text-7xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-200 to-white mb-4">
                         Flight Tracker
                     </h1>
-                    <p className="text-gray-300 text-lg">Real-time aviation intelligence at your fingertips.</p>
+                    <p className="text-gray-300 text-lg">
+                        Real-time aviation intelligence at your fingertips.
+                    </p>
                 </motion.div>
 
                 <SearchComponent onSearch={handleSearch} isLoading={loading} />
@@ -72,13 +87,19 @@ export default function Home() {
                     )}
 
                     <AnimatePresence>
-                        {!loading && flights.map((flight, index) => (
-                            <FlightCard key={`${flight.flight.iata}-${index}`} flight={flight} />
-                        ))}
+                        {!loading &&
+                            flights.map((flight, index) => (
+                                <FlightCard
+                                    key={`${flight.flight.iata}-${index}`}
+                                    flight={flight}
+                                />
+                            ))}
                     </AnimatePresence>
 
                     {!loading && hasSearched && flights.length === 0 && !error && (
-                        <div className="text-center text-gray-400">No results found.</div>
+                        <div className="text-center text-gray-400">
+                            No results found.
+                        </div>
                     )}
                 </div>
             </div>

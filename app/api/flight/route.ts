@@ -1,37 +1,28 @@
-import { NextRequest, NextResponse } from "next/server";
-import axios from "axios";
+import { NextResponse } from "next/server"
 
-export async function GET(request: NextRequest) {
-    const searchParams = request.nextUrl.searchParams;
-    const flight_iata = searchParams.get("flight_iata");
+export async function GET(req: Request) {
+    const { searchParams } = new URL(req.url)
+    const flight = searchParams.get("flight")
 
-    if (!flight_iata) {
-        return NextResponse.json({ error: "Missing flight_iata parameter" }, { status: 400 });
+    if (!flight) {
+        return NextResponse.json(
+            { error: "Flight number is required" },
+            { status: 400 }
+        )
     }
 
-    const apiKey = process.env.AVIATIONSTACK_API_KEY;
+    const API_KEY = process.env.AVIATIONSTACK_API_KEY
 
-    if (!apiKey) {
-        return NextResponse.json({ error: "Server misconfiguration: Missing API Key" }, { status: 500 });
-    }
+    const url = `http://api.aviationstack.com/v1/flights?access_key=${API_KEY}&flight_iata=${flight}`
 
     try {
-        // Aviationstack is HTTP only for free tier, but axios handles it.
-        // Ensure the server environment allows outbound HTTP if strictly enforced,
-        // but usually it's fine.
-        const response = await axios.get("http://api.aviationstack.com/v1/flights", {
-            params: {
-                access_key: apiKey,
-                flight_iata: flight_iata,
-            },
-        });
-
-        return NextResponse.json(response.data);
-    } catch (error: any) {
-        console.error("AviationStack Proxy Error:", error.message);
+        const res = await fetch(url, { cache: "no-store" })
+        const data = await res.json()
+        return NextResponse.json(data)
+    } catch (error) {
         return NextResponse.json(
             { error: "Failed to fetch flight data" },
             { status: 500 }
-        );
+        )
     }
 }
